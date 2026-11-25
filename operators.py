@@ -10,11 +10,9 @@ from .lib import (
     delete_sheet,
     ensure_root_collection,
     find_sheet,
-    fit_error_message,
     grain_local_axes,
     mm_to_bu,
     move_piece_to_collection,
-    piece_fits,
     piece_name,
     positive_dimensions,
     register_addon_class,
@@ -44,8 +42,6 @@ class FC_OT_CreateSheet(bpy.types.Operator):
             return {"CANCELLED"}
 
         error = positive_dimensions((
-            ("Length", props.length_mm),
-            ("Width", props.width_mm),
             ("Thickness", props.thickness_mm),
         ))
         if error:
@@ -65,8 +61,6 @@ class FC_OT_CreateSheet(bpy.types.Operator):
         store_sheet_properties(
             material,
             collection,
-            props.length_mm,
-            props.width_mm,
             props.thickness_mm,
             props.has_texture,
             props.texture_direction,
@@ -111,20 +105,9 @@ class FC_OT_CreatePiece(bpy.types.Operator):
         length = props.length_mm
         width = props.width_mm
         direction = props.direction
-        sheet_length = float(material["fc_length_mm"])
-        sheet_width = float(material["fc_width_mm"])
         thickness = float(material["fc_thickness_mm"])
         if thickness <= 0:
             self.report({"ERROR"}, f"Sheet '{material.name}' has no thickness.")
-            return {"CANCELLED"}
-
-        if not piece_fits(length, width, sheet_length, sheet_width, direction):
-            self.report(
-                {"ERROR"},
-                fit_error_message(
-                    length, width, material.name, sheet_length, sheet_width, direction
-                ),
-            )
             return {"CANCELLED"}
 
         name = piece_name(direction, length, width, material.name)

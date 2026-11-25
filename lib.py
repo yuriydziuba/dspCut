@@ -12,7 +12,7 @@ shared material always reads grain from U, which lets one material show a
 different grain direction on ld and lf pieces.
 
 Sheet material ID properties:
-    fc_is_sheet, fc_length_mm, fc_width_mm, fc_thickness_mm,
+    fc_is_sheet, fc_thickness_mm,
     fc_has_texture, fc_texture_direction ('LENGTH' or 'WIDTH'), fc_color
 
 Piece object ID properties:
@@ -28,7 +28,6 @@ from mathutils import Matrix, Vector
 
 ROOT_COLLECTION = "Furniture Cut"
 MAX_SHEET_NAME = 40
-_FIT_EPSILON_MM = 0.001
 
 
 def _classes_named(name):
@@ -78,56 +77,6 @@ def format_mm(value):
 def mm_to_bu(mm, meters_per_bu):
     scale = meters_per_bu if meters_per_bu else 1.0
     return (float(mm) / 1000.0) / scale
-
-
-def _fits_length_along_sheet_length(length, width, sheet_length, sheet_width):
-    return (
-        length <= sheet_length + _FIT_EPSILON_MM
-        and width <= sheet_width + _FIT_EPSILON_MM
-    )
-
-
-def _fits_length_along_sheet_width(length, width, sheet_length, sheet_width):
-    return (
-        length <= sheet_width + _FIT_EPSILON_MM
-        and width <= sheet_length + _FIT_EPSILON_MM
-    )
-
-
-def piece_fits(length, width, sheet_length, sheet_width, direction):
-    along_length = _fits_length_along_sheet_length(
-        length, width, sheet_length, sheet_width
-    )
-    along_width = _fits_length_along_sheet_width(
-        length, width, sheet_length, sheet_width
-    )
-    if direction == "ld":
-        return along_length
-    if direction == "lf":
-        return along_width
-    if direction == "n":
-        return along_length or along_width
-    return False
-
-
-def fit_error_message(length, width, sheet_name, sheet_length, sheet_width, direction):
-    piece = f"{format_mm(length)}×{format_mm(width)} mm"
-    sheet = (
-        f"{sheet_name} ({format_mm(sheet_length)}×{format_mm(sheet_width)} mm)"
-    )
-    if direction == "n":
-        return f"Piece {piece} does not fit on {sheet} in either direction."
-    if direction == "ld":
-        need = (
-            f"it needs {format_mm(length)} mm of sheet length "
-            f"and {format_mm(width)} mm of sheet width"
-        )
-    else:
-        need = (
-            f"it needs {format_mm(length)} mm of sheet width "
-            f"and {format_mm(width)} mm of sheet length"
-        )
-    return f"Piece {piece} does not fit on {sheet} in direction {direction}: {need}."
 
 
 def grain_local_axes(direction, texture_direction):
@@ -253,17 +202,13 @@ def create_sheet_material(name, color, has_texture):
     return material
 
 
-def store_sheet_properties(material, collection, length, width, thickness, has_texture, texture_direction, color):
+def store_sheet_properties(material, collection, thickness, has_texture, texture_direction, color):
     material["fc_is_sheet"] = True
-    material["fc_length_mm"] = float(length)
-    material["fc_width_mm"] = float(width)
     material["fc_thickness_mm"] = float(thickness)
     material["fc_has_texture"] = bool(has_texture)
     material["fc_texture_direction"] = texture_direction if has_texture else "LENGTH"
     material["fc_color"] = [float(color[0]), float(color[1]), float(color[2])]
     _tag(material, "fc_is_sheet", "Sheet material created by Furniture Cut")
-    _tag(material, "fc_length_mm", "Sheet length, millimeters, global X")
-    _tag(material, "fc_width_mm", "Sheet width, millimeters, global Y")
     _tag(material, "fc_thickness_mm", "Sheet thickness, millimeters, global Z")
     _tag(material, "fc_has_texture", "Sheet shows wood grain")
     _tag(material, "fc_texture_direction", "LENGTH or WIDTH, the sheet axis the grain follows")
@@ -450,15 +395,9 @@ def apply_piece_edit(obj, scene, length, width, direction, sheet_name):
     if direction not in {"ld", "lf", "n"}:
         return "Unknown direction."
 
-    sheet_length = float(material["fc_length_mm"])
-    sheet_width = float(material["fc_width_mm"])
     thickness = float(material["fc_thickness_mm"])
     if thickness <= 0:
         return f"Sheet '{material.name}' has no thickness."
-    if not piece_fits(length, width, sheet_length, sheet_width, direction):
-        return fit_error_message(
-            length, width, material.name, sheet_length, sheet_width, direction
-        )
 
     old_direction = obj.get("fc_direction", "ld")
     view_layer = bpy.context.view_layer if bpy.context else None

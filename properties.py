@@ -32,7 +32,7 @@ DIRECTION_ITEMS = (
     (
         "n",
         "n  either way",
-        "Fits if either orientation works. Placed with length along X, and marked as free to rotate",
+        "Placed with length along X, and marked as free to rotate",
     ),
 )
 
@@ -42,15 +42,13 @@ _sheet_enum_items = []
 def sheet_enum_items(self, context):
     _sheet_enum_items.clear()
     for material in sheet_materials():
-        length = format_mm(material.get("fc_length_mm", 0))
-        width = format_mm(material.get("fc_width_mm", 0))
         thickness = format_mm(material.get("fc_thickness_mm", 0))
         if material.get("fc_has_texture"):
             grain = "length" if material.get("fc_texture_direction") == "LENGTH" else "width"
             grain_text = f"grain along {grain}"
         else:
             grain_text = "no texture"
-        description = f"{length}×{width}×{thickness} mm, {grain_text}"
+        description = f"{thickness} mm, {grain_text}"
         _sheet_enum_items.append((material.name, material.name, description))
     if not _sheet_enum_items:
         _sheet_enum_items.append(("NONE", "No sheets yet", "Create a sheet first"))
@@ -62,24 +60,6 @@ class FC_SheetProps(bpy.types.PropertyGroup):
         name="Name",
         description="Name of the collection and the material",
         default="DSP white",
-    )
-    length_mm: bpy.props.FloatProperty(
-        name="Length",
-        description="Sheet length in millimeters, along global X",
-        default=2500.0,
-        min=1.0,
-        soft_max=4000.0,
-        step=100,
-        precision=1,
-    )
-    width_mm: bpy.props.FloatProperty(
-        name="Width",
-        description="Sheet width in millimeters, along global Y",
-        default=1250.0,
-        min=1.0,
-        soft_max=3000.0,
-        step=100,
-        precision=1,
     )
     thickness_mm: bpy.props.FloatProperty(
         name="Thickness",
@@ -168,10 +148,7 @@ def update_edit_piece(self, context):
         self.sheet_name,
     )
     if error:
-        if "does not fit" in error:
-            self.status = "Change cancelled. That size does not fit this sheet."
-        else:
-            self.status = error
+        self.status = error
         sync_edit_from_active(clear_status=False)
         return
     self.status = ""

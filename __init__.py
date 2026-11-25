@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Furniture Cut",
     "author": "Furniture Cut",
-    "version": (1, 2, 1),
+    "version": (1, 2, 2),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > Furniture Cut",
     "description": "Create sheet materials and cut rectangular pieces from them",

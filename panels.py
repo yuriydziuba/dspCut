@@ -4,7 +4,6 @@ from .lib import (
     active_piece,
     find_sheet,
     format_mm,
-    piece_fits,
     piece_name,
     register_addon_class,
     unregister_addon_class,
@@ -26,8 +25,6 @@ class FC_PT_Sheet(bpy.types.Panel):
         layout.use_property_decorate = False
 
         layout.prop(props, "sheet_name")
-        layout.prop(props, "length_mm", text="Length (mm)")
-        layout.prop(props, "width_mm", text="Width (mm)")
         layout.prop(props, "thickness_mm", text="Thickness (mm)")
         layout.prop(props, "has_texture")
         if props.has_texture:
@@ -47,15 +44,13 @@ class FC_PT_Sheet(bpy.types.Panel):
         row.operator("fc.delete_sheet", text="Delete", icon="TRASH")
         material, _collection = find_sheet(props.selected_sheet)
         if material is not None:
-            length = format_mm(material.get("fc_length_mm", 0))
-            width = format_mm(material.get("fc_width_mm", 0))
             thickness = format_mm(material.get("fc_thickness_mm", 0))
             if material.get("fc_has_texture"):
                 grain = "length" if material.get("fc_texture_direction") == "LENGTH" else "width"
                 extra = f"grain along {grain}"
             else:
                 extra = "no texture"
-            layout.label(text=f"{length}×{width}×{thickness} mm, {extra}")
+            layout.label(text=f"{thickness} mm, {extra}")
 
 
 class FC_PT_Piece(bpy.types.Panel):
@@ -82,19 +77,6 @@ class FC_PT_Piece(bpy.types.Panel):
         if material is not None:
             thickness = format_mm(material.get("fc_thickness_mm", 0))
             layout.label(text=f"Thickness {thickness} mm, from the sheet")
-            fits = piece_fits(
-                props.length_mm,
-                props.width_mm,
-                float(material.get("fc_length_mm", 0)),
-                float(material.get("fc_width_mm", 0)),
-                props.direction,
-            )
-            note = layout.row()
-            note.alert = not fits
-            if fits:
-                note.label(text="Fits on the sheet", icon="CHECKMARK")
-            else:
-                note.label(text="Does not fit on the sheet", icon="ERROR")
         else:
             layout.label(text="Create a sheet first", icon="INFO")
 
@@ -132,20 +114,6 @@ class FC_PT_EditPiece(bpy.types.Panel):
         if material is not None:
             thickness = format_mm(material.get("fc_thickness_mm", 0))
             layout.label(text=f"Thickness {thickness} mm, from the sheet")
-            fits = piece_fits(
-                props.length_mm,
-                props.width_mm,
-                float(material.get("fc_length_mm", 0)),
-                float(material.get("fc_width_mm", 0)),
-                props.direction,
-            )
-            if not props.status:
-                note = layout.row()
-                note.alert = not fits
-                if fits:
-                    note.label(text="Fits on the sheet", icon="CHECKMARK")
-                else:
-                    note.label(text="Does not fit on the sheet", icon="ERROR")
             pending = piece_name(
                 props.direction, props.length_mm, props.width_mm, material.name
             )
